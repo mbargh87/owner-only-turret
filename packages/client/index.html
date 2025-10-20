@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner-Only Turret v3.9 - User Input Turret ID</title>
+    <title>Owner-Only Turret v4.0 - Debug Logs</title>
     <style>
         * {
             margin: 0;
@@ -188,8 +188,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret v3.9</h1>
-        <div class="version">Complete Setup Flow</div>
+        <h1>🎯 Owner-Only Turret v4.0</h1>
+        <div class="version">Complete Setup Flow + Debug Logs</div>
 
         <div class="status-bar">
             <div class="status-label">Connected Wallet:</div>
@@ -222,14 +222,34 @@
 
         <div id="alertContainer"></div>
 
+        <div class="info-section" style="margin-top: 30px;">
+            <h3>🔍 Debug Logs</h3>
+            <p style="color: #aaa; font-size: 0.9em; margin-bottom: 10px;">
+                View inProximity() function calls for your turret to debug targeting issues.
+            </p>
+            <div class="input-group">
+                <label for="debugTurretId">Turret ID (for debug logs):</label>
+                <input
+                    type="text"
+                    id="debugTurretId"
+                    placeholder="Enter turret ID to check debug logs"
+                >
+            </div>
+            <button id="checkDebugBtn" class="button">Check Debug Logs</button>
+            <div id="debugLogContainer" style="margin-top: 15px; display: none;">
+                <h4 style="color: #00d9ff; margin-bottom: 10px;">Recent Logs:</h4>
+                <div id="debugLogResults" class="log-container" style="font-size: 0.8em;"></div>
+            </div>
+        </div>
+
         <div class="activity-log">
-            <h3>📋 Activity Log (v3.9):</h3>
+            <h3>📋 Activity Log (v4.0):</h3>
             <div class="log-container" id="logContainer"></div>
         </div>
     </div>
 
     <script type="module">
-        const VERSION = 'v3.9';
+        const VERSION = 'v4.0';
         const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
 
@@ -528,9 +548,159 @@
             }
         }
 
+        async function checkDebugLogs() {
+            try {
+                logActivity('Checking debug logs...');
+                const checkBtn = document.getElementById('checkDebugBtn');
+                checkBtn.disabled = true;
+                checkBtn.textContent = 'Checking...';
+
+                const turretId = document.getElementById('debugTurretId').value.trim();
+                if (!turretId) {
+                    throw new Error('Please enter Turret ID');
+                }
+
+                const viem = await import('https://esm.sh/viem@2.7.10');
+
+                const publicClient = viem.createPublicClient({
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.http()
+                });
+
+                // Table ID for ownerturret:DebugLog
+                const tableId = '0x6f776e6572747572726574000000000044656275674c6f670000000000000000';
+
+                // Get recent blocks and check for logs
+                const currentBlock = await publicClient.getBlockNumber();
+                logActivity(`Current block: ${currentBlock}`);
+
+                const debugResults = document.getElementById('debugLogResults');
+                debugResults.innerHTML = '<div style="color: #aaa;">Scanning recent blocks for debug logs...</div>';
+                document.getElementById('debugLogContainer').style.display = 'block';
+
+                let logsFound = 0;
+                const lookbackBlocks = 1000; // Check last 1000 blocks
+
+                // Try to find logs by checking recent timestamps
+                const now = Math.floor(Date.now() / 1000);
+                const oneHourAgo = now - 3600;
+
+                const getRecordAbi = [{
+                    name: 'getRecord',
+                    type: 'function',
+                    stateMutability: 'view',
+                    inputs: [
+                        { name: 'tableId', type: 'bytes32' },
+                        { name: 'keyTuple', type: 'bytes32[]' }
+                    ],
+                    outputs: [
+                        { name: 'staticData', type: 'bytes' },
+                        { name: 'encodedLengths', type: 'bytes32' },
+                        { name: 'dynamicData', type: 'bytes' }
+                    ]
+                }];
+
+                const contract = viem.getContract({
+                    address: WORLD_ADDRESS,
+                    abi: getRecordAbi,
+                    client: { public: publicClient }
+                });
+
+                let resultsHtml = '<div style="color: #888; margin-bottom: 10px;">Checking timestamps in last hour...</div>';
+                debugResults.innerHTML = resultsHtml;
+
+                // Try timestamps in the last hour
+                for (let timestamp = now; timestamp >= oneHourAgo; timestamp -= 60) {
+                    try {
+                        const keyTuple = [
+                            viem.pad(viem.toHex(BigInt(turretId)), { size: 32 }),
+                            viem.pad(viem.toHex(BigInt(timestamp)), { size: 32 })
+                        ];
+
+                        const [staticData, , ] = await contract.read.getRecord([tableId, keyTuple]);
+
+                        if (staticData && staticData !== '0x' && staticData.length > 2) {
+                            logsFound++;
+
+                            // Decode the log data
+                            // Schema: targetCharacterId (uint256), registeredOwner (uint256), isOwner (bool), hasBeenShot (bool), foundInQueue (bool)
+                            const targetCharId = BigInt('0x' + staticData.slice(2, 66));
+                            const registeredOwner = BigInt('0x' + staticData.slice(66, 130));
+                            const isOwner = staticData.slice(130, 132) === '01';
+                            const hasBeenShot = staticData.slice(132, 134) === '01';
+                            const foundInQueue = staticData.slice(134, 136) === '01';
+
+                            const logEntry = `
+                                <div style="background: rgba(0,217,255,0.05); padding: 10px; margin: 10px 0; border-left: 3px solid #00d9ff; border-radius: 4px;">
+                                    <div style="color: #00d9ff; font-weight: bold;">Log at ${new Date(timestamp * 1000).toLocaleString()}</div>
+                                    <div style="margin-top: 5px;">
+                                        <div><span style="color: #888;">Target Character:</span> ${targetCharId.toString()}</div>
+                                        <div><span style="color: #888;">Registered Owner:</span> ${registeredOwner.toString()}</div>
+                                        <div><span style="color: #888;">Is Owner:</span> <span style="color: ${isOwner ? '#00ff64' : '#ff6464'}">${isOwner ? 'YES' : 'NO'}</span></div>
+                                        <div><span style="color: #888;">Has Been Shot:</span> <span style="color: ${hasBeenShot ? '#00ff64' : '#ff6464'}">${hasBeenShot ? 'YES' : 'NO'}</span></div>
+                                        <div><span style="color: #888;">Found In Queue:</span> <span style="color: ${foundInQueue ? '#00ff64' : '#ff6464'}">${foundInQueue ? 'YES' : 'NO'}</span></div>
+                                    </div>
+                                </div>
+                            `;
+                            resultsHtml += logEntry;
+                            debugResults.innerHTML = resultsHtml;
+                            logActivity(`Found debug log at timestamp ${timestamp}`);
+                        }
+                    } catch (e) {
+                        // No record at this timestamp, continue
+                    }
+                }
+
+                if (logsFound === 0) {
+                    debugResults.innerHTML = `
+                        <div style="color: #ff6464; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 4px;">
+                            ⚠️ No debug logs found in the last hour for turret ${turretId}.
+                            <br><br>
+                            This means the inProximity() function has NOT been called by the game engine.
+                            <br><br>
+                            Possible reasons:
+                            <ul style="margin-top: 10px; margin-left: 20px;">
+                                <li>Turret is not online/configured properly</li>
+                                <li>You haven't approached the turret yet</li>
+                                <li>Game engine is not calling the custom system</li>
+                            </ul>
+                        </div>
+                    `;
+                    logActivity(`No debug logs found for turret ${turretId}`);
+                    showAlert('info', 'No debug logs found. Make sure the turret is online and you approach it in-game.');
+                } else {
+                    logActivity(`✅ Found ${logsFound} debug log(s)`);
+                    showAlert('success', `Found ${logsFound} debug log(s) for this turret!`);
+                }
+
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Debug Logs';
+
+            } catch (error) {
+                logActivity(`ERROR checking debug logs: ${error.message}`);
+                showAlert('error', error.message);
+                console.error('Full error:', error);
+
+                const checkBtn = document.getElementById('checkDebugBtn');
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Debug Logs';
+            }
+        }
+
         // Event listeners
         document.getElementById('connectBtn').addEventListener('click', connectWallet);
         document.getElementById('registerBtn').addEventListener('click', registerOwner);
+        document.getElementById('checkDebugBtn').addEventListener('click', checkDebugLogs);
 
         // Listen for account changes
         if (typeof window.ethereum !== 'undefined') {

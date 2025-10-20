@@ -197,6 +197,26 @@
             color: #00d9ff;
         }
 
+        #debugLog {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #64ffda;
+        }
+
+        #debugLog div {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 2px solid #00d9ff;
+            padding-left: 10px;
+        }
+
         .loading {
             display: inline-block;
             width: 20px;
@@ -286,6 +306,12 @@ pnpm configure
 
         <div class="alert error" id="errorAlert"></div>
         <div class="alert success" id="successAlert"></div>
+        <div class="alert info" id="infoAlert"></div>
+
+        <div id="debugLog" style="display:none;">
+            <strong style="color: #00d9ff;">Debug Log:</strong>
+            <div id="debugContent"></div>
+        </div>
 
         <div style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #00d9ff; margin-bottom: 15px;">Register as Turret Owner</h3>
@@ -343,6 +369,20 @@ pnpm configure
         let worldContract;
         let userAddress;
 
+        function addDebugLog(message) {
+            const debugLog = document.getElementById('debugLog');
+            const debugContent = document.getElementById('debugContent');
+            debugLog.style.display = 'block';
+
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            debugContent.appendChild(logEntry);
+
+            // Auto-scroll to bottom
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+
         function showError(message) {
             const errorAlert = document.getElementById('errorAlert');
             errorAlert.textContent = message;
@@ -354,11 +394,21 @@ pnpm configure
             const successAlert = document.getElementById('successAlert');
             successAlert.textContent = message;
             successAlert.style.display = 'block';
-            setTimeout(() => successAlert.style.display = 'none', 5000);
+            setTimeout(() => successAlert.style.display = 'none', 10000);
+            addDebugLog('SUCCESS: ' + message);
+        }
+
+        function showInfo(message) {
+            const infoAlert = document.getElementById('infoAlert');
+            infoAlert.textContent = message;
+            infoAlert.style.display = 'block';
+            setTimeout(() => infoAlert.style.display = 'none', 5000);
+            addDebugLog('INFO: ' + message);
         }
 
         async function connectWallet() {
             try {
+                addDebugLog('Starting wallet connection...');
                 const connectBtn = document.getElementById('connectWallet');
                 connectBtn.disabled = true;
                 connectBtn.innerHTML = '<span class="loading"></span> Connecting...';
@@ -368,9 +418,11 @@ pnpm configure
                     throw new Error('EVE Vault wallet not found. Please install EVE Vault browser extension.');
                 }
 
+                addDebugLog('Requesting account access...');
                 // Request account access
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 userAddress = accounts[0];
+                addDebugLog('Connected to wallet: ' + userAddress);
 
                 // Create provider and signer
                 provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -378,12 +430,14 @@ pnpm configure
 
                 // Check if we're on the right network
                 const network = await provider.getNetwork();
+                addDebugLog('Network Chain ID: ' + network.chainId);
                 if (network.chainId !== CHAIN_ID) {
                     throw new Error(`Please switch to Pyrope Testnet (Chain ID: ${CHAIN_ID})`);
                 }
 
                 // Create contract instance
                 worldContract = new ethers.Contract(WORLD_ADDRESS, WORLD_ABI, signer);
+                addDebugLog('World contract initialized at: ' + WORLD_ADDRESS);
 
                 // Show wallet info
                 document.getElementById('walletAddress').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
@@ -395,6 +449,7 @@ pnpm configure
 
                 showSuccess('Wallet connected successfully!');
             } catch (error) {
+                addDebugLog('ERROR: ' + error.message);
                 console.error('Connection error:', error);
                 showError(error.message);
                 document.getElementById('connectWallet').disabled = false;
@@ -404,6 +459,7 @@ pnpm configure
 
         async function registerOwner() {
             try {
+                addDebugLog('Starting registration...');
                 const registerBtn = document.getElementById('registerBtn');
                 registerBtn.disabled = true;
                 registerBtn.innerHTML = '<span class="loading"></span> Registering...';
@@ -417,38 +473,45 @@ pnpm configure
                 // In EVE Frontier, the wallet address IS the character ID
                 const characterId = userAddress;
 
-                showSuccess(`Registering turret ${turretId} to your address ${characterId}...`);
+                addDebugLog('Turret ID: ' + turretId);
+                addDebugLog('Character ID (wallet): ' + characterId);
+
+                showInfo(`Preparing transaction for turret ${turretId}...`);
 
                 // Encode the function call: setTurretOwner(uint256,uint256)
                 const functionSignature = ethers.utils.id('setTurretOwner(uint256,uint256)').slice(0, 10);
+                addDebugLog('Function signature: ' + functionSignature);
+                
                 const encodedParams = ethers.utils.defaultAbiCoder.encode(
                     ['uint256', 'uint256'],
                     [turretId, characterId]
                 );
                 const callData = functionSignature + encodedParams.slice(2);
+                addDebugLog('Call data length: ' + callData.length + ' characters');
 
-                console.log('Calling setTurretOwner...');
-                console.log('System ID:', SYSTEM_ID);
-                console.log('Turret ID:', turretId);
-                console.log('Character ID (wallet address):', characterId);
-                console.log('Call Data:', callData);
-
+                addDebugLog('Sending transaction...');
                 // Call the World contract
                 const tx = await worldContract.call(SYSTEM_ID, callData);
 
-                showSuccess('Transaction submitted! Waiting for confirmation...');
-                console.log('Transaction hash:', tx.hash);
+                showInfo('Transaction sent! Hash: ' + tx.hash.slice(0, 10) + '...');
+                addDebugLog('Transaction hash: ' + tx.hash);
 
+                addDebugLog('Waiting for confirmation...');
                 // Wait for transaction confirmation
                 const receipt = await tx.wait();
-                console.log('Transaction confirmed:', receipt);
+                addDebugLog('Transaction confirmed in block: ' + receipt.blockNumber);
+                addDebugLog('Gas used: ' + receipt.gasUsed.toString());
 
-                showSuccess(`Success! You are now registered as owner of turret ${turretId}`);
+                showSuccess(`✅ SUCCESS! You are now registered as owner of turret ${turretId}. Approach the turret in-game to test!`);
 
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Register as Owner';
 
             } catch (error) {
+                addDebugLog('ERROR: ' + error.message);
+                if (error.data) {
+                    addDebugLog('Error data: ' + error.data);
+                }
                 console.error('Registration error:', error);
                 showError(error.message || 'Failed to register owner');
                 document.getElementById('registerBtn').disabled = false;

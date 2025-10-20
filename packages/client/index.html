@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner-Only Turret v3.4 - Fixed CharactersByAccount Function</title>
+    <title>Owner-Only Turret v3.5 - Reverted to Working CharactersByAccount</title>
     <style>
         * {
             margin: 0;
@@ -188,8 +188,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret v3.4</h1>
-        <div class="version">Fixed CharactersByAccount Function</div>
+        <h1>🎯 Owner-Only Turret v3.5</h1>
+        <div class="version">Re-entry Detection Fix</div>
 
         <div class="status-bar">
             <div class="status-label">Connected Wallet:</div>
@@ -224,13 +224,13 @@
         <div id="alertContainer"></div>
 
         <div class="activity-log">
-            <h3>📋 Activity Log (v3.4):</h3>
+            <h3>📋 Activity Log (v3.5):</h3>
             <div class="log-container" id="logContainer"></div>
         </div>
     </div>
 
     <script type="module">
-        const VERSION = 'v3.4';
+        const VERSION = 'v3.5';
         const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
 
@@ -296,9 +296,8 @@
 
                 // Read CharactersByAccount table to get the actual character ID
                 // Table is at namespace "evefrontier", name "CharactersByAccount"
-                // MUD table accessor pattern: namespace__TableName(keyTuple)
                 const charactersByAccountAbi = [{
-                    name: 'evefrontier__CharactersByAccount',
+                    name: 'evefrontier__CharactersByAccount_get',
                     type: 'function',
                     stateMutability: 'view',
                     inputs: [{ name: 'account', type: 'address' }],
@@ -311,7 +310,7 @@
                     client: { public: publicClient }
                 });
 
-                characterId = await contract.read.evefrontier__CharactersByAccount([userAddress]);
+                characterId = await contract.read.evefrontier__CharactersByAccount_get([userAddress]);
 
                 if (characterId === 0n) {
                     logActivity('WARNING: No in-game character found for this wallet!');

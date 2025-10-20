@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner-Only Turret</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(26, 31, 58, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .status-section {
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #aaa;
+            font-weight: 500;
+        }
+
+        .status-value {
+            color: #00d9ff;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid #00d9ff;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-section h3 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-section li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-section li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #00d9ff;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+            color: #0a0e27;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 1em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #00d9ff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .alert.success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+        }
+
+        .alert.error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+        }
+
+        .alert.info {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #00d9ff;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Owner-Only Turret</h1>
+        <p class="subtitle">Custom Smart Turret System - Namespace: <code>ownerturret</code></p>
+
+        <div class="status-section">
+            <h3 style="color: #00d9ff; margin-bottom: 15px;">Smart Contract Status</h3>
+            <div class="status-item">
+                <span class="status-label">World Address:</span>
+                <span class="status-value">0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Namespace:</span>
+                <span class="status-value">ownerturret</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Network:</span>
+                <span class="status-value">Pyrope Testnet (Stillness)</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Block Number:</span>
+                <span class="status-value">9699122</span>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>How It Works</h3>
+            <ul>
+                <li><strong>Owner Protection:</strong> The turret will shoot you (the owner) only ONCE when you approach</li>
+                <li><strong>Auto-Reset:</strong> When you leave range and return, it will shoot you once again</li>
+                <li><strong>Enemy Targeting:</strong> The turret continuously shoots all non-owner entities</li>
+                <li><strong>Testing Friendly:</strong> Designed to verify the contract works in-game</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3>Configuration Instructions</h3>
+            <p style="margin-bottom: 10px;">To use this contract with your Smart Turret:</p>
+            <ol style="padding-left: 20px; line-height: 1.8;">
+                <li>Deploy a Smart Turret in EVE Frontier</li>
+                <li>Get your turret's ID and your character ID</li>
+                <li>Configure using the script below or wait for DApp integration</li>
+            </ol>
+        </div>
+
+        <div class="info-section">
+            <h3>Setup via CLI Script</h3>
+            <p style="margin-bottom: 10px; color: #aaa;">Add these to your <code>.env</code> file:</p>
+            <div class="code-block">
+SMART_TURRET_ID=your_turret_id_here<br>
+OWNER_CHARACTER_ID=your_character_id_here
+            </div>
+            <p style="margin-top: 10px; color: #aaa;">Then run:</p>
+            <div class="code-block">
+pnpm configure
+            </div>
+        </div>
+
+        <div class="alert info" id="walletInfo" style="display:none;">
+            <strong>Wallet Connected:</strong> <span id="walletAddress"></span>
+        </div>
+
+        <div class="alert error" id="errorAlert"></div>
+        <div class="alert success" id="successAlert"></div>
+
+        <div style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #00d9ff; margin-bottom: 15px;">Register as Turret Owner</h3>
+
+            <button class="button" id="connectWallet" onclick="connectWallet()">
+                Connect EVE Vault Wallet
+            </button>
+
+            <div id="ownerRegistration" style="display:none;">
+                            <div class="form-group">
+                <label for="turretId">Smart Turret ID:</label>
+                <input type="text" id="turretId" placeholder="Enter your turret's entity ID">
+                <small style="display: block; margin-top: 5px; color: #64ffda;">Find this in your turret's configuration panel in-game</small>
+            </div>
+
+                <button class="button" id="registerBtn" onclick="registerOwner()">
+                    Register as Owner
+                </button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Technical Details</h3>
+            <ul>
+                <li><strong>Tables:</strong> TurretOwner, OwnerShotOnce</li>
+                <li><strong>System:</strong> OwnerOnlyTurretSystem</li>
+                <li><strong>Functions:</strong> setTurretOwner(), inProximity()</li>
+                <li><strong>Gas Optimized:</strong> Minimal storage operations</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>Owner-Only Turret v1.0.0</p>
+            <p style="margin-top: 5px;">Deployed to Pyrope Testnet • Built with MUD Framework</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script>
+        // Contract configuration
+        const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
+        const CHAIN_ID = 695569; // Pyrope testnet
+        const RPC_URL = 'https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com';
+
+        // ABI for the World contract - we only need the call function
+        const WORLD_ABI = [
+            "function call(bytes32 systemId, bytes callData) external payable returns (bytes memory)"
+        ];
+
+        // Our system's resource ID: namespace "ownerturret", name "OwnerOnlyTurretS"
+        const SYSTEM_ID = '0x7379000000000000000000000000006f776e65727475727265740000000000004f776e65724f6e6c795475727265745300000000000000000000000000000000';
+
+        let provider;
+        let signer;
+        let worldContract;
+        let userAddress;
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+            setTimeout(() => errorAlert.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const successAlert = document.getElementById('successAlert');
+            successAlert.textContent = message;
+            successAlert.style.display = 'block';
+            setTimeout(() => successAlert.style.display = 'none', 5000);
+        }
+
+        async function connectWallet() {
+            try {
+                const connectBtn = document.getElementById('connectWallet');
+                connectBtn.disabled = true;
+                connectBtn.innerHTML = '<span class="loading"></span> Connecting...';
+
+                // Check if window.ethereum is available (EVE Vault / MetaMask)
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('EVE Vault wallet not found. Please install EVE Vault browser extension.');
+                }
+
+                // Request account access
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAddress = accounts[0];
+
+                // Create provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+
+                // Check if we're on the right network
+                const network = await provider.getNetwork();
+                if (network.chainId !== CHAIN_ID) {
+                    throw new Error(`Please switch to Pyrope Testnet (Chain ID: ${CHAIN_ID})`);
+                }
+
+                // Create contract instance
+                worldContract = new ethers.Contract(WORLD_ADDRESS, WORLD_ABI, signer);
+
+                // Show wallet info
+                document.getElementById('walletAddress').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                document.getElementById('walletInfo').style.display = 'block';
+
+                // Show registration form
+                document.getElementById('ownerRegistration').style.display = 'block';
+                connectBtn.style.display = 'none';
+
+                showSuccess('Wallet connected successfully!');
+            } catch (error) {
+                console.error('Connection error:', error);
+                showError(error.message);
+                document.getElementById('connectWallet').disabled = false;
+                document.getElementById('connectWallet').textContent = 'Connect EVE Vault Wallet';
+            }
+        }
+
+        async function registerOwner() {
+            try {
+                const registerBtn = document.getElementById('registerBtn');
+                registerBtn.disabled = true;
+                registerBtn.innerHTML = '<span class="loading"></span> Registering...';
+
+                const turretId = document.getElementById('turretId').value.trim();
+
+                if (!turretId) {
+                    throw new Error('Please enter Turret ID');
+                }
+
+                // In EVE Frontier, the wallet address IS the character ID
+                const characterId = userAddress;
+
+                showSuccess(`Registering turret ${turretId} to your address ${characterId}...`);
+
+                // Encode the function call: setTurretOwner(uint256,uint256)
+                const functionSignature = ethers.utils.id('setTurretOwner(uint256,uint256)').slice(0, 10);
+                const encodedParams = ethers.utils.defaultAbiCoder.encode(
+                    ['uint256', 'uint256'],
+                    [turretId, characterId]
+                );
+                const callData = functionSignature + encodedParams.slice(2);
+
+                console.log('Calling setTurretOwner...');
+                console.log('System ID:', SYSTEM_ID);
+                console.log('Turret ID:', turretId);
+                console.log('Character ID (wallet address):', characterId);
+                console.log('Call Data:', callData);
+
+                // Call the World contract
+                const tx = await worldContract.call(SYSTEM_ID, callData);
+
+                showSuccess('Transaction submitted! Waiting for confirmation...');
+                console.log('Transaction hash:', tx.hash);
+
+                // Wait for transaction confirmation
+                const receipt = await tx.wait();
+                console.log('Transaction confirmed:', receipt);
+
+                showSuccess(`Success! You are now registered as owner of turret ${turretId}`);
+
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register as Owner';
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                showError(error.message || 'Failed to register owner');
+                document.getElementById('registerBtn').disabled = false;
+                document.getElementById('registerBtn').textContent = 'Register as Owner';
+            }
+        }
+
+        // Listen for account changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    location.reload();
+                } else {
+                    userAddress = accounts[0];
+                    document.getElementById('walletAddress').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+        }
+    </script>
+</body>
+</html>

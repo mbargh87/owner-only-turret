@@ -1,0 +1,28 @@
+[profile.default]
+solc = "0.8.24"
+evm_version = "cancun"
+ffi = false
+fuzz_runs = 256
+optimizer = true
+optimizer_runs = 3000
+verbosity = 2
+src = "src"
+test = "test"
+out = "out"
+allow_paths = [
+  "../../node_modules",
+  "../../../../packages",
+  "../../../mud/packages",
+]
+extra_output_files = [
+  "abi",
+  "evm.bytecode"
+]
+fs_permissions = [{ access = "read", path = "./"}]
+script_execution_protection=false
+
+[profile.local]
+eth_rpc_url = "http://127.0.0.1:8546"
+
+[profile.pyrope]
+eth_rpc_url = "https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com"

@@ -1,0 +1,20 @@
+{
+  "name": "owner-only-turret",
+  "version": "0.0.1",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm recursive run build",
+    "dev": "pnpm --filter 'contracts' dev",
+    "test": "pnpm recursive run test"
+  },
+  "devDependencies": {
+    "@latticexyz/cli": "2.2.22-7367a813d9b394415ba70678c4295cc90562c304",
+    "@latticexyz/common": "2.2.22-7367a813d9b394415ba70678c4295cc90562c304",
+    "typescript": "5.4.2"
+  },
+  "engines": {
+    "node": "^20",
+    "pnpm": ">=9.15.0"
+  }
+}

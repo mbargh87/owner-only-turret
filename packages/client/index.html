@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner-Only Turret v3.1 - Complete Setup</title>
+    <title>Owner-Only Turret v3.2 - Fixed Character ID</title>
     <style>
         * {
             margin: 0;
@@ -188,8 +188,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret v3.1</h1>
-        <div class="version">Complete Setup - Registration + Configuration</div>
+        <h1>🎯 Owner-Only Turret v3.2</h1>
+        <div class="version">Fixed Character ID Lookup</div>
 
         <div class="status-bar">
             <div class="status-label">Connected Wallet:</div>
@@ -201,7 +201,7 @@
         <div class="info-section">
             <h3>How It Works</h3>
             <ul>
-                <li>Your wallet address IS your character ID in EVE Frontier</li>
+                <li>Connect your wallet to fetch your in-game character ID</li>
                 <li>Register your turret by entering its ID and clicking Register</li>
                 <li>The turret will shoot you once per visit, then ignore you</li>
                 <li>All other players get shot continuously</li>
@@ -224,19 +224,18 @@
         <div id="alertContainer"></div>
 
         <div class="activity-log">
-            <h3>📋 Activity Log (v3.1):</h3>
+            <h3>📋 Activity Log (v3.2):</h3>
             <div class="log-container" id="logContainer"></div>
         </div>
     </div>
 
     <script type="module">
-        const VERSION = 'v3.1';
+        const VERSION = 'v3.2';
         const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
 
         let userAddress = null;
-
-        function logActivity(message) {
+        let characterId = null; // Store the actual in-game character ID        function logActivity(message) {
             const logContainer = document.getElementById('logContainer');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
@@ -271,21 +270,66 @@
 
                 userAddress = accounts[0];
                 document.getElementById('walletAddress').textContent = userAddress;
+
+                logActivity(`Wallet connected: ${userAddress}`);
+                logActivity('Fetching your in-game character ID...');
+
+                // Import viem to query the chain
+                const viem = await import('https://esm.sh/viem@2.7.10');
+
+                const publicClient = viem.createPublicClient({
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.http()
+                });
+
+                // Read CharactersByAccount table to get the actual character ID
+                // Table is at namespace "evefrontier", name "CharactersByAccount"
+                const charactersByAccountAbi = [{
+                    name: 'evefrontier__CharactersByAccount_get',
+                    type: 'function',
+                    stateMutability: 'view',
+                    inputs: [{ name: 'account', type: 'address' }],
+                    outputs: [{ name: 'smartObjectId', type: 'uint256' }]
+                }];
+
+                const contract = viem.getContract({
+                    address: WORLD_ADDRESS,
+                    abi: charactersByAccountAbi,
+                    client: { public: publicClient }
+                });
+
+                characterId = await contract.read.evefrontier__CharactersByAccount_get([userAddress]);
+
+                if (characterId === 0n) {
+                    logActivity('WARNING: No in-game character found for this wallet!');
+                    logActivity('You may need to create a character in-game first.');
+                    showAlert('error', 'No character found for this wallet. Please create a character in EVE Frontier first.');
+                    document.getElementById('connectBtn').textContent = 'Connect Wallet';
+                    document.getElementById('connectBtn').disabled = false;
+                    return;
+                }
+
+                logActivity(`✅ Character ID found: ${characterId.toString()}`);
                 document.getElementById('connectBtn').textContent = 'Connected ✓';
                 document.getElementById('connectBtn').disabled = true;
                 document.getElementById('registerBtn').disabled = false;
-
-                logActivity(`Wallet connected: ${userAddress}`);
-                logActivity(`Character ID: ${userAddress} (same as wallet)`);
-                showAlert('success', 'Wallet connected successfully!');
+                showAlert('success', `Wallet connected! Character ID: ${characterId.toString().slice(0, 20)}...`);
 
             } catch (error) {
                 logActivity(`ERROR: ${error.message}`);
                 showAlert('error', error.message);
             }
-        }
-
-        async function registerOwner() {
+        }        async function registerOwner() {
             try {
                 logActivity('Starting registration...');
                 const registerBtn = document.getElementById('registerBtn');
@@ -298,7 +342,7 @@
                 }
 
                 logActivity(`Turret ID: ${turretId}`);
-                logActivity(`Character ID (wallet): ${userAddress}`);
+                logActivity(`Character ID: ${characterId.toString()}`);
                 showAlert('info', `Preparing transaction for turret ${turretId}...`);
 
                 // Import viem dynamically
@@ -356,14 +400,12 @@
 
                 // Step 1: Register as owner
                 logActivity('Step 1/2: Registering as owner...');
-                logActivity(`Calling ownerturret__setTurretOwner([${turretId}, ${userAddress}])`);
+                logActivity(`Calling ownerturret__setTurretOwner([${turretId}, ${characterId.toString()}])`);
 
                 const txHash1 = await contract.write.ownerturret__setTurretOwner([
                     BigInt(turretId),
-                    userAddress
-                ]);
-
-                logActivity(`Registration transaction sent! Hash: ${txHash1}`);
+                    characterId  // Use the actual character ID, not wallet address!
+                ]);                logActivity(`Registration transaction sent! Hash: ${txHash1}`);
                 showAlert('info', `Step 1/2: Owner registration sent! Hash: ${txHash1.slice(0, 10)}...`);
 
                 logActivity('Waiting for registration confirmation...');

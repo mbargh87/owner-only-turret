@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Owner-Only Turret v2.0 - FIXED</title>
+    <title>Owner-Only Turret v2.2 - Transaction Fix</title>
     <style>
         * {
             margin: 0;
@@ -312,9 +312,9 @@ pnpm configure
         <div class="alert info" id="infoAlert"></div>
 
         <div id="debugLog" style="display:block; min-height: 100px;">
-            <strong style="color: #00d9ff; font-size: 1.2em;">📋 Activity Log (v2.0-FIXED):</strong>
+            <strong style="color: #00d9ff; font-size: 1.2em;">📋 Activity Log (v2.2-TX-FIX):</strong>
             <div id="debugContent" style="padding: 10px; margin-top: 10px;">
-                <div style="color: #888;">Waiting for wallet connection...</div>
+                <div style="color: #888;">Loading DApp...</div>
             </div>
         </div>
 
@@ -366,15 +366,17 @@ pnpm configure
             "function call(bytes32 systemId, bytes callData) external payable returns (bytes memory)"
         ];
 
+        // FIXED SYSTEM_ID - Updated 2025-10-19 23:03
         // Our system's resource ID: namespace "ownerturret", name "OwnerOnlyTurretS"
+        // OLD (WRONG): 0x7379000000000000000000000000006f776e65727475727265740000000000004f776e65724f6e6c795475727265745300000000000000000000000000000000
+        // NEW (CORRECT): 0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
-        const VERSION = 'v2.0-FIXED';
+        const VERSION = 'v2.1-CACHE-BUST';
 
-        // Log version immediately on page load
-        console.log('DApp Version:', VERSION);
-        console.log('System ID:', SYSTEM_ID);
-
-        let provider;
+        // Log version immediately on page load to verify we have the right version
+        addDebugLog('DApp Version: ' + VERSION);
+        addDebugLog('System ID: ' + SYSTEM_ID);
+        addDebugLog('System ID Length: ' + SYSTEM_ID.length + ' chars (should be 66)');        let provider;
         let signer;
         let worldContract;
         let userAddress;
@@ -505,8 +507,11 @@ pnpm configure
                 addDebugLog('Call data length: ' + callData.length + ' characters');
 
                 addDebugLog('Sending transaction...');
-                // Call the World contract
-                const tx = await worldContract.call(SYSTEM_ID, callData);
+                // Call the World contract with explicit options
+                const tx = await worldContract.call(SYSTEM_ID, callData, {
+                    value: 0,
+                    gasLimit: 500000
+                });
 
                 showInfo('Transaction sent! Hash: ' + tx.hash.slice(0, 10) + '...');
                 addDebugLog('Transaction hash: ' + tx.hash);

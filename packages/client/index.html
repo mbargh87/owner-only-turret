@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner-Only Turret v3.0 - MUD World Integration</title>
+    <title>Owner-Only Turret v3.1 - Complete Setup</title>
     <style>
         * {
             margin: 0;
@@ -188,8 +188,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret v3.0</h1>
-        <div class="version">MUD World Integration</div>
+        <h1>🎯 Owner-Only Turret v3.1</h1>
+        <div class="version">Complete Setup - Registration + Configuration</div>
 
         <div class="status-bar">
             <div class="status-label">Connected Wallet:</div>
@@ -210,9 +210,9 @@
 
         <div class="input-group">
             <label for="turretId">Turret Smart Object ID:</label>
-            <input 
-                type="text" 
-                id="turretId" 
+            <input
+                type="text"
+                id="turretId"
                 placeholder="Enter turret ID (e.g., 44973507583497126349853277567784089051534402655779934255490424747595261704481)"
                 value="44973507583497126349853277567784089051534402655779934255490424747595261704481"
             >
@@ -224,16 +224,16 @@
         <div id="alertContainer"></div>
 
         <div class="activity-log">
-            <h3>📋 Activity Log (v3.0):</h3>
+            <h3>📋 Activity Log (v3.1):</h3>
             <div class="log-container" id="logContainer"></div>
         </div>
     </div>
 
     <script type="module">
-        const VERSION = 'v3.0';
+        const VERSION = 'v3.1';
         const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
-        
+
         let userAddress = null;
 
         function logActivity(message) {
@@ -260,25 +260,25 @@
         async function connectWallet() {
             try {
                 logActivity('Connecting wallet...');
-                
+
                 if (typeof window.ethereum === 'undefined') {
                     throw new Error('No wallet detected. Please install EVE Vault or MetaMask.');
                 }
 
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
                 });
-                
+
                 userAddress = accounts[0];
                 document.getElementById('walletAddress').textContent = userAddress;
                 document.getElementById('connectBtn').textContent = 'Connected ✓';
                 document.getElementById('connectBtn').disabled = true;
                 document.getElementById('registerBtn').disabled = false;
-                
+
                 logActivity(`Wallet connected: ${userAddress}`);
                 logActivity(`Character ID: ${userAddress} (same as wallet)`);
                 showAlert('success', 'Wallet connected successfully!');
-                
+
             } catch (error) {
                 logActivity(`ERROR: ${error.message}`);
                 showAlert('error', error.message);
@@ -303,9 +303,9 @@
 
                 // Import viem dynamically
                 const viem = await import('https://esm.sh/viem@2.7.10');
-                
+
                 logActivity('Creating wallet client...');
-                
+
                 const walletClient = viem.createWalletClient({
                     account: userAddress,
                     chain: {
@@ -314,8 +314,8 @@
                         network: 'pyrope',
                         nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
                         rpcUrls: {
-                            default: { 
-                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com'] 
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
                             }
                         }
                     },
@@ -324,17 +324,29 @@
 
                 logActivity('Creating contract instance...');
 
-                // Minimal World ABI - just the auto-generated function for our system
-                const worldAbi = [{
-                    name: 'ownerturret__setTurretOwner',
-                    type: 'function',
-                    stateMutability: 'nonpayable',
-                    inputs: [
-                        { name: 'smartTurretId', type: 'uint256' },
-                        { name: 'ownerCharacterId', type: 'uint256' }
-                    ],
-                    outputs: []
-                }];
+                // World ABI - includes both registration and configuration functions
+                const worldAbi = [
+                    {
+                        name: 'ownerturret__setTurretOwner',
+                        type: 'function',
+                        stateMutability: 'nonpayable',
+                        inputs: [
+                            { name: 'smartTurretId', type: 'uint256' },
+                            { name: 'ownerCharacterId', type: 'uint256' }
+                        ],
+                        outputs: []
+                    },
+                    {
+                        name: 'evefrontier__SmartTurretSystem_configureTurret',
+                        type: 'function',
+                        stateMutability: 'nonpayable',
+                        inputs: [
+                            { name: 'smartObjectId', type: 'uint256' },
+                            { name: 'systemId', type: 'bytes32' }
+                        ],
+                        outputs: []
+                    }
+                ];
 
                 const contract = viem.getContract({
                     address: WORLD_ADDRESS,
@@ -342,20 +354,20 @@
                     client: { wallet: walletClient }
                 });
 
-                logActivity('Calling ownerturret__setTurretOwner...');
-                logActivity(`Args: [${turretId}, ${userAddress}]`);
-                
-                // Call the auto-generated MUD function
-                const txHash = await contract.write.ownerturret__setTurretOwner([
+                // Step 1: Register as owner
+                logActivity('Step 1/2: Registering as owner...');
+                logActivity(`Calling ownerturret__setTurretOwner([${turretId}, ${userAddress}])`);
+
+                const txHash1 = await contract.write.ownerturret__setTurretOwner([
                     BigInt(turretId),
                     userAddress
                 ]);
 
-                logActivity(`Transaction sent! Hash: ${txHash}`);
-                showAlert('info', `Transaction sent! Hash: ${txHash.slice(0, 10)}...`);
-                
-                logActivity('Waiting for confirmation...');
-                
+                logActivity(`Registration transaction sent! Hash: ${txHash1}`);
+                showAlert('info', `Step 1/2: Owner registration sent! Hash: ${txHash1.slice(0, 10)}...`);
+
+                logActivity('Waiting for registration confirmation...');
+
                 // Create public client to wait for transaction
                 const publicClient = viem.createPublicClient({
                     chain: {
@@ -364,22 +376,43 @@
                         network: 'pyrope',
                         nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
                         rpcUrls: {
-                            default: { 
-                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com'] 
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
                             }
                         }
                     },
                     transport: viem.http()
                 });
 
-                const receipt = await publicClient.waitForTransactionReceipt({ 
-                    hash: txHash 
+                const receipt1 = await publicClient.waitForTransactionReceipt({
+                    hash: txHash1
                 });
-                
-                logActivity(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
-                logActivity(`Gas used: ${receipt.gasUsed.toString()}`);
-                
-                showAlert('success', `✅ SUCCESS! You are now registered as owner of turret ${turretId}. Approach the turret in-game to test!`);
+
+                logActivity(`✅ Registration confirmed in block ${receipt1.blockNumber}`);
+                logActivity(`Gas used: ${receipt1.gasUsed.toString()}`);
+
+                // Step 2: Configure turret to use our custom system
+                logActivity('Step 2/2: Configuring turret to use custom system...');
+                logActivity(`Calling evefrontier__SmartTurretSystem_configureTurret([${turretId}, ${SYSTEM_ID}])`);
+
+                const txHash2 = await contract.write.evefrontier__SmartTurretSystem_configureTurret([
+                    BigInt(turretId),
+                    SYSTEM_ID
+                ]);
+
+                logActivity(`Configuration transaction sent! Hash: ${txHash2}`);
+                showAlert('info', `Step 2/2: Turret configuration sent! Hash: ${txHash2.slice(0, 10)}...`);
+
+                logActivity('Waiting for configuration confirmation...');
+
+                const receipt2 = await publicClient.waitForTransactionReceipt({
+                    hash: txHash2
+                });
+
+                logActivity(`✅ Configuration confirmed in block ${receipt2.blockNumber}`);
+                logActivity(`Gas used: ${receipt2.gasUsed.toString()}`);
+
+                showAlert('success', `✅ COMPLETE! Turret ${turretId} is now configured and ready! Approach it in-game to test.`);
 
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Register as Owner';
@@ -394,7 +427,7 @@
                 }
                 console.error('Full error:', error);
                 showAlert('error', error.message || 'Failed to register owner');
-                
+
                 const registerBtn = document.getElementById('registerBtn');
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Register as Owner';

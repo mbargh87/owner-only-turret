@@ -300,17 +300,19 @@ pnpm configure
             </div>
         </div>
 
-        <div class="alert info" id="walletInfo" style="display:none;">
-            <strong>Wallet Connected:</strong> <span id="walletAddress"></span>
+        <div class="alert info" id="walletInfo" style="display:block; background: rgba(0, 217, 255, 0.2); border: 2px solid #00d9ff;">
+            <strong>⚠️ STATUS:</strong> <span id="walletAddress">Not Connected</span>
         </div>
 
         <div class="alert error" id="errorAlert"></div>
         <div class="alert success" id="successAlert"></div>
         <div class="alert info" id="infoAlert"></div>
 
-        <div id="debugLog" style="display:none;">
-            <strong style="color: #00d9ff;">Debug Log:</strong>
-            <div id="debugContent"></div>
+        <div id="debugLog" style="display:block; min-height: 100px;">
+            <strong style="color: #00d9ff; font-size: 1.2em;">📋 Activity Log:</strong>
+            <div id="debugContent" style="padding: 10px; margin-top: 10px;">
+                <div style="color: #888;">Waiting for wallet connection...</div>
+            </div>
         </div>
 
         <div style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -376,14 +378,17 @@ pnpm configure
 
             const timestamp = new Date().toLocaleTimeString();
             const logEntry = document.createElement('div');
+            logEntry.style.fontSize = '1em';
+            logEntry.style.padding = '8px';
+            logEntry.style.marginTop = '5px';
+            logEntry.style.backgroundColor = 'rgba(0, 217, 255, 0.05)';
+            logEntry.style.borderLeft = '3px solid #00d9ff';
             logEntry.textContent = `[${timestamp}] ${message}`;
             debugContent.appendChild(logEntry);
 
             // Auto-scroll to bottom
             debugLog.scrollTop = debugLog.scrollHeight;
-        }
-
-        function showError(message) {
+        }        function showError(message) {
             const errorAlert = document.getElementById('errorAlert');
             errorAlert.textContent = message;
             errorAlert.style.display = 'block';
@@ -440,8 +445,10 @@ pnpm configure
                 addDebugLog('World contract initialized at: ' + WORLD_ADDRESS);
 
                 // Show wallet info
-                document.getElementById('walletAddress').textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                document.getElementById('walletAddress').textContent = '✅ Connected: ' + userAddress.slice(0, 10) + '...' + userAddress.slice(-8);
                 document.getElementById('walletInfo').style.display = 'block';
+                document.getElementById('walletInfo').style.background = 'rgba(0, 255, 136, 0.2)';
+                document.getElementById('walletInfo').style.borderColor = '#00ff88';
 
                 // Show registration form
                 document.getElementById('ownerRegistration').style.display = 'block';

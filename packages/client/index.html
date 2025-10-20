@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Owner-Only Turret v2.2 - Transaction Fix</title>
+    <title>Owner-Only Turret v2.3 - Raw Transaction</title>
     <style>
         * {
             margin: 0;
@@ -247,7 +247,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret <span style="color: #00d9ff; font-size: 0.6em;">v2.2-TX-FIX</span></h1>
+        <h1>🎯 Owner-Only Turret <span style="color: #00d9ff; font-size: 0.6em;">v2.3</span></h1>
         <p class="subtitle">Custom Smart Turret System - Namespace: <code>ownerturret</code></p>
 
         <div class="status-section">
@@ -312,7 +312,7 @@ pnpm configure
         <div class="alert info" id="infoAlert"></div>
 
         <div id="debugLog" style="display:block; min-height: 100px;">
-            <strong style="color: #00d9ff; font-size: 1.2em;">📋 Activity Log (v2.2-TX-FIX):</strong>
+            <strong style="color: #00d9ff; font-size: 1.2em;">📋 Activity Log (v2.3):</strong>
             <div id="debugContent" style="padding: 10px; margin-top: 10px;">
                 <div style="color: #888;">Loading DApp...</div>
             </div>
@@ -371,7 +371,7 @@ pnpm configure
         // OLD (WRONG): 0x7379000000000000000000000000006f776e65727475727265740000000000004f776e65724f6e6c795475727265745300000000000000000000000000000000
         // NEW (CORRECT): 0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
-        const VERSION = 'v2.2-TX-FIX';
+        const VERSION = 'v2.3';
 
         // Log version immediately on page load to verify we have the right version
         addDebugLog('DApp Version: ' + VERSION);
@@ -506,10 +506,21 @@ pnpm configure
                 const callData = functionSignature + encodedParams.slice(2);
                 addDebugLog('Call data length: ' + callData.length + ' characters');
 
-                addDebugLog('Sending transaction...');
-                // Call the World contract with explicit options
-                const tx = await worldContract.call(SYSTEM_ID, callData, {
-                    value: 0,
+                // Prepare the full call data for World.call(systemId, callData)
+                const worldCallData = ethers.utils.defaultAbiCoder.encode(
+                    ['bytes32', 'bytes'],
+                    [SYSTEM_ID, callData]
+                );
+                const worldFunctionSig = ethers.utils.id('call(bytes32,bytes)').slice(0, 10);
+                const fullCallData = worldFunctionSig + worldCallData.slice(2);
+
+                addDebugLog('Full call data length: ' + fullCallData.length + ' characters');
+                addDebugLog('Sending transaction via raw sendTransaction...');
+
+                // Send as raw transaction instead of using contract method
+                const tx = await signer.sendTransaction({
+                    to: WORLD_ADDRESS,
+                    data: fullCallData,
                     gasLimit: 500000
                 });
 

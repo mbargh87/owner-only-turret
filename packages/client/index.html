@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner-Only Turret v3.2 - Fixed Character ID</title>
+    <title>Owner-Only Turret v3.3 - Fixed Re-entry Detection</title>
     <style>
         * {
             margin: 0;
@@ -188,8 +188,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret v3.2</h1>
-        <div class="version">Fixed Character ID Lookup</div>
+        <h1>🎯 Owner-Only Turret v3.3</h1>
+        <div class="version">Fixed Re-entry Detection</div>
 
         <div class="status-bar">
             <div class="status-label">Connected Wallet:</div>
@@ -224,18 +224,20 @@
         <div id="alertContainer"></div>
 
         <div class="activity-log">
-            <h3>📋 Activity Log (v3.2):</h3>
+            <h3>📋 Activity Log (v3.3):</h3>
             <div class="log-container" id="logContainer"></div>
         </div>
     </div>
 
     <script type="module">
-        const VERSION = 'v3.2';
+        const VERSION = 'v3.3';
         const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
 
         let userAddress = null;
-        let characterId = null; // Store the actual in-game character ID        function logActivity(message) {
+        let characterId = null; // Store the actual in-game character ID
+
+        function logActivity(message) {
             const logContainer = document.getElementById('logContainer');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
@@ -329,7 +331,9 @@
                 logActivity(`ERROR: ${error.message}`);
                 showAlert('error', error.message);
             }
-        }        async function registerOwner() {
+        }
+
+        async function registerOwner() {
             try {
                 logActivity('Starting registration...');
                 const registerBtn = document.getElementById('registerBtn');
@@ -405,7 +409,9 @@
                 const txHash1 = await contract.write.ownerturret__setTurretOwner([
                     BigInt(turretId),
                     characterId  // Use the actual character ID, not wallet address!
-                ]);                logActivity(`Registration transaction sent! Hash: ${txHash1}`);
+                ]);
+
+                logActivity(`Registration transaction sent! Hash: ${txHash1}`);
                 showAlert('info', `Step 1/2: Owner registration sent! Hash: ${txHash1.slice(0, 10)}...`);
 
                 logActivity('Waiting for registration confirmation...');

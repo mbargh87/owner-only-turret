@@ -41,6 +41,32 @@ contract OwnerOnlyTurretSystem is System {
     }
 
     /**
+     * @notice Update the owner of a turret (emergency fix for wrong character ID)
+     * @param smartTurretId The Smart Turret id
+     * @param newOwnerCharacterId The new/correct character ID of the owner
+     * @dev This allows fixing registration mistakes (like using wallet address instead of character ID)
+     * @dev GAS: You pay for this transaction (~50k gas). One-time fix.
+     */
+    function updateTurretOwner(
+        uint256 smartTurretId,
+        uint256 newOwnerCharacterId
+    ) public {
+        // Validate inputs
+        require(smartTurretId > 0, "Invalid turret ID");
+        require(newOwnerCharacterId > 0, "Invalid owner character ID");
+
+        // Get existing owner
+        uint256 existingOwner = TurretOwner.getOwnerCharacterId(smartTurretId);
+        require(existingOwner != 0, "No owner set - use setTurretOwner first");
+
+        // Update the owner in the MUD table
+        TurretOwner.set(smartTurretId, newOwnerCharacterId);
+
+        // Reset the shot flag in case they're currently in range
+        OwnerShotOnce.setHasBeenShot(smartTurretId, false);
+    }
+
+    /**
      * @notice Main targeting logic - runs every tick for each player in proximity
      * @param smartTurretId The Smart Turret id
      * @param characterId The character ID of the turret owner (from game)
@@ -76,40 +102,37 @@ contract OwnerOnlyTurretSystem is System {
             turretTarget.characterId
         );
 
-        // IF OWNER: Shoot once per visit, reset when they leave range
+        // IF OWNER: Shoot once per visit
         if (isOwner) {
-            // Check if owner was already shot this visit
             bool hasBeenShot = OwnerShotOnce.getHasBeenShot(smartTurretId);
 
+            // KEY LOGIC: If flag is true but owner is NOT in queue, they left and came back
+            // This happens on the FIRST call after re-entering range
+            if (hasBeenShot && !foundInPriorityQueue) {
+                // Owner re-entered range after leaving - reset flag for new visit
+                OwnerShotOnce.setHasBeenShot(smartTurretId, false);
+                hasBeenShot = false;
+            }
+
             if (!hasBeenShot) {
-                // First time this visit - shoot them once
+                // First shot of this visit
                 OwnerShotOnce.setHasBeenShot(smartTurretId, true);
                 return addOrUpdateTarget(priorityQueue, turretTarget);
-            }
-
-            // Owner already shot this visit - don't shoot again
-            if (foundInPriorityQueue) {
-                // Remove from queue to ensure they're safe
-                return
-                    removeTargetFromQueue(
-                        priorityQueue,
-                        turretTarget.characterId
-                    );
-            }
-
-            return priorityQueue;
-        } else {
-            // NOT OWNER - but check if owner just left range (reset flag)
-            // If owner is not in the current proximity check, reset their shot flag
-            bool ownerInQueue = getIsTargetInQueue(priorityQueue, turretOwner);
-            if (!ownerInQueue) {
-                // Owner not in range anymore, reset their shot flag for next visit
-                bool ownerShotFlag = OwnerShotOnce.getHasBeenShot(
-                    smartTurretId
-                );
-                if (ownerShotFlag) {
-                    OwnerShotOnce.setHasBeenShot(smartTurretId, false);
+            } else {
+                // Already shot this visit - remove from queue (stop shooting)
+                if (foundInPriorityQueue) {
+                    return removeTargetFromQueue(priorityQueue, turretTarget.characterId);
                 }
+                return priorityQueue;
+            }
+        }
+
+        // NOT OWNER - process normally
+        // Also reset owner flag if owner left (as backup cleanup)
+        if (turretOwner != 0) {
+            bool ownerInQueue = getIsTargetInQueue(priorityQueue, turretOwner);
+            if (!ownerInQueue && OwnerShotOnce.getHasBeenShot(smartTurretId)) {
+                OwnerShotOnce.setHasBeenShot(smartTurretId, false);
             }
         }
 

@@ -14,6 +14,7 @@
         "function inProximity(uint256 smartTurretId, uint256 characterId, ((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] priorityQueue, (uint256 weaponTypeId, uint256 ammoTypeId, uint256 chargesLeft) turret, (uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) turretTarget) returns (((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] updatedPriorityQueue)",
         "function removeTargetFromQueue(((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] priorityQueue, uint256 characterId) pure returns (((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] updatedPriorityQueue)",
         "function setTurretOwner(uint256 smartTurretId, uint256 ownerCharacterId)",
+        "function updateTurretOwner(uint256 smartTurretId, uint256 newOwnerCharacterId)",
         "function updateWeight(((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] priorityQueue) pure returns (((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] updatedPriorityQueue)"
       ],
       "worldAbi": [
@@ -24,9 +25,10 @@
         "function ownerturret__inProximity(uint256 smartTurretId, uint256 characterId, ((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] priorityQueue, (uint256 weaponTypeId, uint256 ammoTypeId, uint256 chargesLeft) turret, (uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) turretTarget) returns (((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] updatedPriorityQueue)",
         "function ownerturret__removeTargetFromQueue(((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] priorityQueue, uint256 characterId) pure returns (((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] updatedPriorityQueue)",
         "function ownerturret__setTurretOwner(uint256 smartTurretId, uint256 ownerCharacterId)",
+        "function ownerturret__updateTurretOwner(uint256 smartTurretId, uint256 newOwnerCharacterId)",
         "function ownerturret__updateWeight(((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] priorityQueue) pure returns (((uint256 shipId, uint256 shipTypeId, uint256 characterId, uint256 hpRatio, uint256 shieldRatio, uint256 armorRatio) target, uint256 weight)[] updatedPriorityQueue)"
       ]
     }
   ],
-  "createdAt": 1760928127591
+  "createdAt": 1760989439807
 }

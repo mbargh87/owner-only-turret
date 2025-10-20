@@ -13,6 +13,8 @@ import { TargetPriority, Turret, SmartTurretTarget, AggressionParams } from "@ev
 interface IOwnerOnlyTurretSystem {
   function ownerturret__setTurretOwner(uint256 smartTurretId, uint256 ownerCharacterId) external;
 
+  function ownerturret__updateTurretOwner(uint256 smartTurretId, uint256 newOwnerCharacterId) external;
+
   function ownerturret__inProximity(
     uint256 smartTurretId,
     uint256 characterId,

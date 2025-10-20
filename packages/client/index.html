@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner-Only Turret v3.6 - Simplified Wallet Connection</title>
+    <title>Owner-Only Turret v3.7 - Fixed Character ID Lookup via getRecord</title>
     <style>
         * {
             margin: 0;
@@ -188,8 +188,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Owner-Only Turret v3.6</h1>
-        <div class="version">Simplified Wallet Connection</div>
+        <h1>🎯 Owner-Only Turret v3.7</h1>
+        <div class="version">Fixed Character ID Lookup</div>
 
         <div class="status-bar">
             <div class="status-label">Connected Wallet:</div>
@@ -224,13 +224,13 @@
         <div id="alertContainer"></div>
 
         <div class="activity-log">
-            <h3>📋 Activity Log (v3.6):</h3>
+            <h3>📋 Activity Log (v3.7):</h3>
             <div class="log-container" id="logContainer"></div>
         </div>
     </div>
 
     <script type="module">
-        const VERSION = 'v3.6';
+        const VERSION = 'v3.7';
         const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
         const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
 
@@ -271,20 +271,76 @@
                 });
 
                 userAddress = accounts[0];
-                characterId = BigInt(userAddress); // Use wallet address as character ID for now
-
                 document.getElementById('walletAddress').textContent = userAddress;
                 logActivity(`✅ Wallet connected: ${userAddress}`);
-                logActivity(`Using wallet address as character ID: ${characterId.toString()}`);
+                logActivity('Fetching your in-game character ID...');
 
+                // Import viem
+                const viem = await import('https://esm.sh/viem@2.7.10');
+
+                const publicClient = viem.createPublicClient({
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.http()
+                });
+
+                // Use low-level getRecord to fetch character ID
+                // Table ID for evefrontier:CharactersByAccount (truncated to 16 bytes)
+                const tableId = '0x746265766566726f6e746965720000004368617261637465727342794163636f';
+
+                // Encode wallet address as bytes32 key
+                const keyTuple = [viem.pad(userAddress, { size: 32 })];
+
+                const getRecordAbi = [{
+                    name: 'getRecord',
+                    type: 'function',
+                    stateMutability: 'view',
+                    inputs: [
+                        { name: 'tableId', type: 'bytes32' },
+                        { name: 'keyTuple', type: 'bytes32[]' }
+                    ],
+                    outputs: [
+                        { name: 'staticData', type: 'bytes' },
+                        { name: 'encodedLengths', type: 'bytes32' },
+                        { name: 'dynamicData', type: 'bytes' }
+                    ]
+                }];
+
+                const contract = viem.getContract({
+                    address: WORLD_ADDRESS,
+                    abi: getRecordAbi,
+                    client: { public: publicClient }
+                });
+
+                const [staticData, , ] = await contract.read.getRecord([tableId, keyTuple]);
+
+                // Decode the character ID from staticData (uint256 = 32 bytes)
+                if (staticData === '0x' || staticData.length < 66) {
+                    throw new Error('No character found for this wallet. Please create a character in EVE Frontier first.');
+                }
+
+                characterId = BigInt(staticData);
+
+                logActivity(`✅ Character ID found: ${characterId.toString()}`);
                 document.getElementById('connectBtn').textContent = 'Connected ✓';
                 document.getElementById('connectBtn').disabled = true;
                 document.getElementById('registerBtn').disabled = false;
-                showAlert('success', `Wallet connected successfully!`);
+                showAlert('success', `Wallet connected! Character ID: ${characterId.toString().slice(0, 20)}...`);
 
             } catch (error) {
                 logActivity(`ERROR: ${error.message}`);
                 showAlert('error', error.message);
+                document.getElementById('connectBtn').textContent = 'Connect Wallet';
+                document.getElementById('connectBtn').disabled = false;
             }
         }
 

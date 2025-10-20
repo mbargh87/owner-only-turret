@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner-Only Turret v4.0 - Debug Logs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(26, 31, 58, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+        }
+
+        h1 {
+            color: #00d9ff;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .version {
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+
+        .status-bar {
+            background: rgba(0, 217, 255, 0.1);
+            border-left: 4px solid #00d9ff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .status-label {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            color: #00d9ff;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid #00d9ff;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-section h3 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+            color: #0a0e27;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+        }
+
+        .button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .activity-log {
+            margin-top: 30px;
+        }
+
+        .activity-log h3 {
+            color: #00d9ff;
+            margin-bottom: 15px;
+        }
+
+        .log-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            color: #bbb;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 100, 0.1);
+            border: 1px solid rgba(0, 255, 100, 0.3);
+            color: #00ff64;
+        }
+
+        .alert-error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            color: #ff6464;
+        }
+
+        .alert-info {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Owner-Only Turret v4.0</h1>
+        <div class="version">Complete Setup Flow + Debug Logs</div>
+
+        <div class="status-bar">
+            <div class="status-label">Connected Wallet:</div>
+            <div class="status-value" id="walletAddress">Not connected</div>
+            <div class="status-label" style="margin-top: 10px;">Network:</div>
+            <div class="status-value">Pyrope Testnet (Chain ID: 695569)</div>
+        </div>
+
+        <div class="info-section">
+            <h3>How It Works</h3>
+            <ul>
+                <li>Connect your wallet to fetch your in-game character ID</li>
+                <li>Register your turret by entering its ID and clicking Register</li>
+                <li>The turret will shoot you once per visit, then ignore you</li>
+                <li>All other players get shot continuously</li>
+            </ul>
+        </div>
+
+        <div class="input-group">
+            <label for="turretId">Turret Smart Object ID:</label>
+            <input
+                type="text"
+                id="turretId"
+                placeholder="Enter your turret's smart object ID"
+            >
+        </div>
+
+        <button id="connectBtn" class="button">Connect Wallet</button>
+        <button id="registerBtn" class="button" disabled>Register as Owner</button>
+
+        <div id="alertContainer"></div>
+
+        <div class="info-section" style="margin-top: 30px;">
+            <h3>🔍 Debug Logs</h3>
+            <p style="color: #aaa; font-size: 0.9em; margin-bottom: 10px;">
+                View inProximity() function calls for your turret to debug targeting issues.
+            </p>
+            <div class="input-group">
+                <label for="debugTurretId">Turret ID (for debug logs):</label>
+                <input
+                    type="text"
+                    id="debugTurretId"
+                    placeholder="Enter turret ID to check debug logs"
+                >
+            </div>
+            <button id="checkDebugBtn" class="button">Check Debug Logs</button>
+            <div id="debugLogContainer" style="margin-top: 15px; display: none;">
+                <h4 style="color: #00d9ff; margin-bottom: 10px;">Recent Logs:</h4>
+                <div id="debugLogResults" class="log-container" style="font-size: 0.8em;"></div>
+            </div>
+        </div>
+
+        <div class="activity-log">
+            <h3>📋 Activity Log (v4.0):</h3>
+            <div class="log-container" id="logContainer"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        const VERSION = 'v4.0';
+        const WORLD_ADDRESS = '0x7b71fe480ac4E7E96d150A1454411c5CBFb2B1F1';
+        const SYSTEM_ID = '0x73796f776e65727475727265740000004f776e65724f6e6c7954757272657453';
+
+        let userAddress = null;
+        let characterId = null; // Store the actual in-game character ID
+
+        function logActivity(message) {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span>${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${VERSION}] ${message}`);
+        }
+
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 10000);
+        }
+
+        async function connectWallet() {
+            try {
+                logActivity('Connecting wallet...');
+
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('No wallet detected. Please install EVE Vault or MetaMask.');
+                }
+
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                userAddress = accounts[0];
+                document.getElementById('walletAddress').textContent = userAddress;
+                logActivity(`✅ Wallet connected: ${userAddress}`);
+
+                // Switch to Pyrope network
+                logActivity('Switching to Pyrope network...');
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0xA9E51' }], // 695569 in hex
+                    });
+                    logActivity('✅ Switched to Pyrope network');
+                } catch (switchError) {
+                    // This error code indicates that the chain has not been added to the wallet
+                    if (switchError.code === 4902) {
+                        logActivity('Pyrope network not found, adding it...');
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0xA9E51',
+                                    chainName: 'Pyrope Testnet',
+                                    nativeCurrency: {
+                                        name: 'Ether',
+                                        symbol: 'ETH',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com'],
+                                    blockExplorerUrls: null
+                                }],
+                            });
+                            logActivity('✅ Pyrope network added and switched');
+                        } catch (addError) {
+                            throw new Error('Failed to add Pyrope network to wallet');
+                        }
+                    } else {
+                        throw switchError;
+                    }
+                }
+                logActivity('Fetching your in-game character ID...');
+
+                // Import viem
+                const viem = await import('https://esm.sh/viem@2.7.10');
+
+                const publicClient = viem.createPublicClient({
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.http()
+                });
+
+                // Use low-level getRecord to fetch character ID
+                // Table ID for evefrontier:CharactersByAccount (truncated to 16 bytes)
+                const tableId = '0x746265766566726f6e746965720000004368617261637465727342794163636f';
+
+                // Encode wallet address as bytes32 key
+                const keyTuple = [viem.pad(userAddress, { size: 32 })];
+
+                const getRecordAbi = [{
+                    name: 'getRecord',
+                    type: 'function',
+                    stateMutability: 'view',
+                    inputs: [
+                        { name: 'tableId', type: 'bytes32' },
+                        { name: 'keyTuple', type: 'bytes32[]' }
+                    ],
+                    outputs: [
+                        { name: 'staticData', type: 'bytes' },
+                        { name: 'encodedLengths', type: 'bytes32' },
+                        { name: 'dynamicData', type: 'bytes' }
+                    ]
+                }];
+
+                const contract = viem.getContract({
+                    address: WORLD_ADDRESS,
+                    abi: getRecordAbi,
+                    client: { public: publicClient }
+                });
+
+                const [staticData, , ] = await contract.read.getRecord([tableId, keyTuple]);
+
+                // Decode the character ID from staticData (uint256 = 32 bytes)
+                if (staticData === '0x' || staticData.length < 66) {
+                    throw new Error('No character found for this wallet. Please create a character in EVE Frontier first.');
+                }
+
+                characterId = BigInt(staticData);
+
+                logActivity(`✅ Character ID found: ${characterId.toString()}`);
+                document.getElementById('connectBtn').textContent = 'Connected ✓';
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('registerBtn').disabled = false;
+                showAlert('success', `Wallet connected! Character ID: ${characterId.toString().slice(0, 20)}...`);
+
+            } catch (error) {
+                logActivity(`ERROR: ${error.message}`);
+                showAlert('error', error.message);
+                document.getElementById('connectBtn').textContent = 'Connect Wallet';
+                document.getElementById('connectBtn').disabled = false;
+            }
+        }
+
+        async function registerOwner() {
+            try {
+                logActivity('Starting registration...');
+                const registerBtn = document.getElementById('registerBtn');
+                registerBtn.disabled = true;
+                registerBtn.textContent = 'Registering...';
+
+                const turretId = document.getElementById('turretId').value.trim();
+                if (!turretId) {
+                    throw new Error('Please enter Turret ID');
+                }
+
+                logActivity(`Turret ID: ${turretId}`);
+                logActivity(`Character ID: ${characterId.toString()}`);
+                showAlert('info', `Preparing transaction for turret ${turretId}...`);
+
+                // Import viem dynamically
+                const viem = await import('https://esm.sh/viem@2.7.10');
+
+                logActivity('Creating wallet client...');
+
+                const walletClient = viem.createWalletClient({
+                    account: userAddress,
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.custom(window.ethereum)
+                });
+
+                logActivity('Creating contract instance...');
+
+                // World ABI - includes both registration and configuration functions
+                const worldAbi = [
+                    {
+                        name: 'ownerturret__setTurretOwner',
+                        type: 'function',
+                        stateMutability: 'nonpayable',
+                        inputs: [
+                            { name: 'smartTurretId', type: 'uint256' },
+                            { name: 'ownerCharacterId', type: 'uint256' }
+                        ],
+                        outputs: []
+                    },
+                    {
+                        name: 'evefrontier__SmartTurretSystem_configureTurret',
+                        type: 'function',
+                        stateMutability: 'nonpayable',
+                        inputs: [
+                            { name: 'smartObjectId', type: 'uint256' },
+                            { name: 'systemId', type: 'bytes32' }
+                        ],
+                        outputs: []
+                    }
+                ];
+
+                const contract = viem.getContract({
+                    address: WORLD_ADDRESS,
+                    abi: worldAbi,
+                    client: { wallet: walletClient }
+                });
+
+                // Step 1: Register as owner
+                logActivity('Step 1/2: Registering as owner...');
+                logActivity(`Calling ownerturret__setTurretOwner([${turretId}, ${characterId.toString()}])`);
+
+                const txHash1 = await contract.write.ownerturret__setTurretOwner([
+                    BigInt(turretId),
+                    characterId  // Use the actual character ID, not wallet address!
+                ]);
+
+                logActivity(`Registration transaction sent! Hash: ${txHash1}`);
+                showAlert('info', `Step 1/2: Owner registration sent! Hash: ${txHash1.slice(0, 10)}...`);
+
+                logActivity('Waiting for registration confirmation...');
+
+                // Create public client to wait for transaction
+                const publicClient = viem.createPublicClient({
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.http()
+                });
+
+                const receipt1 = await publicClient.waitForTransactionReceipt({
+                    hash: txHash1
+                });
+
+                logActivity(`✅ Registration confirmed in block ${receipt1.blockNumber}`);
+                logActivity(`Gas used: ${receipt1.gasUsed.toString()}`);
+
+                // Step 2: Configure turret to use our custom system
+                logActivity('Step 2/2: Configuring turret to use custom system...');
+                logActivity(`Calling evefrontier__SmartTurretSystem_configureTurret([${turretId}, ${SYSTEM_ID}])`);
+
+                const txHash2 = await contract.write.evefrontier__SmartTurretSystem_configureTurret([
+                    BigInt(turretId),
+                    SYSTEM_ID
+                ]);
+
+                logActivity(`Configuration transaction sent! Hash: ${txHash2}`);
+                showAlert('info', `Step 2/2: Turret configuration sent! Hash: ${txHash2.slice(0, 10)}...`);
+
+                logActivity('Waiting for configuration confirmation...');
+
+                const receipt2 = await publicClient.waitForTransactionReceipt({
+                    hash: txHash2
+                });
+
+                logActivity(`✅ Configuration confirmed in block ${receipt2.blockNumber}`);
+                logActivity(`Gas used: ${receipt2.gasUsed.toString()}`);
+
+                showAlert('success', `✅ COMPLETE! Turret ${turretId} is now configured and ready! Approach it in-game to test.`);
+
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register as Owner';
+
+            } catch (error) {
+                logActivity(`ERROR: ${error.message}`);
+                if (error.data) {
+                    logActivity(`Error data: ${error.data}`);
+                }
+                if (error.cause) {
+                    logActivity(`Cause: ${error.cause.message || error.cause}`);
+                }
+                console.error('Full error:', error);
+                showAlert('error', error.message || 'Failed to register owner');
+
+                const registerBtn = document.getElementById('registerBtn');
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register as Owner';
+            }
+        }
+
+        async function checkDebugLogs() {
+            try {
+                logActivity('Checking debug logs...');
+                const checkBtn = document.getElementById('checkDebugBtn');
+                checkBtn.disabled = true;
+                checkBtn.textContent = 'Checking...';
+
+                const turretId = document.getElementById('debugTurretId').value.trim();
+                if (!turretId) {
+                    throw new Error('Please enter Turret ID');
+                }
+
+                const viem = await import('https://esm.sh/viem@2.7.10');
+
+                const publicClient = viem.createPublicClient({
+                    chain: {
+                        id: 695569,
+                        name: 'Pyrope',
+                        network: 'pyrope',
+                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: {
+                            default: {
+                                http: ['https://pyrope-external-sync-node-rpc.live.tech.evefrontier.com']
+                            }
+                        }
+                    },
+                    transport: viem.http()
+                });
+
+                // Table ID for ownerturret:DebugLog
+                const tableId = '0x6f776e6572747572726574000000000044656275674c6f670000000000000000';
+
+                // Get recent blocks and check for logs
+                const currentBlock = await publicClient.getBlockNumber();
+                logActivity(`Current block: ${currentBlock}`);
+
+                const debugResults = document.getElementById('debugLogResults');
+                debugResults.innerHTML = '<div style="color: #aaa;">Scanning recent blocks for debug logs...</div>';
+                document.getElementById('debugLogContainer').style.display = 'block';
+
+                let logsFound = 0;
+                const lookbackBlocks = 1000; // Check last 1000 blocks
+
+                // Try to find logs by checking recent timestamps
+                const now = Math.floor(Date.now() / 1000);
+                const oneHourAgo = now - 3600;
+
+                const getRecordAbi = [{
+                    name: 'getRecord',
+                    type: 'function',
+                    stateMutability: 'view',
+                    inputs: [
+                        { name: 'tableId', type: 'bytes32' },
+                        { name: 'keyTuple', type: 'bytes32[]' }
+                    ],
+                    outputs: [
+                        { name: 'staticData', type: 'bytes' },
+                        { name: 'encodedLengths', type: 'bytes32' },
+                        { name: 'dynamicData', type: 'bytes' }
+                    ]
+                }];
+
+                const contract = viem.getContract({
+                    address: WORLD_ADDRESS,
+                    abi: getRecordAbi,
+                    client: { public: publicClient }
+                });
+
+                let resultsHtml = '<div style="color: #888; margin-bottom: 10px;">Checking timestamps in last hour...</div>';
+                debugResults.innerHTML = resultsHtml;
+
+                // Try timestamps in the last hour
+                for (let timestamp = now; timestamp >= oneHourAgo; timestamp -= 60) {
+                    try {
+                        const keyTuple = [
+                            viem.pad(viem.toHex(BigInt(turretId)), { size: 32 }),
+                            viem.pad(viem.toHex(BigInt(timestamp)), { size: 32 })
+                        ];
+
+                        const [staticData, , ] = await contract.read.getRecord([tableId, keyTuple]);
+
+                        if (staticData && staticData !== '0x' && staticData.length > 2) {
+                            logsFound++;
+
+                            // Decode the log data
+                            // Schema: targetCharacterId (uint256), registeredOwner (uint256), isOwner (bool), hasBeenShot (bool), foundInQueue (bool)
+                            const targetCharId = BigInt('0x' + staticData.slice(2, 66));
+                            const registeredOwner = BigInt('0x' + staticData.slice(66, 130));
+                            const isOwner = staticData.slice(130, 132) === '01';
+                            const hasBeenShot = staticData.slice(132, 134) === '01';
+                            const foundInQueue = staticData.slice(134, 136) === '01';
+
+                            const logEntry = `
+                                <div style="background: rgba(0,217,255,0.05); padding: 10px; margin: 10px 0; border-left: 3px solid #00d9ff; border-radius: 4px;">
+                                    <div style="color: #00d9ff; font-weight: bold;">Log at ${new Date(timestamp * 1000).toLocaleString()}</div>
+                                    <div style="margin-top: 5px;">
+                                        <div><span style="color: #888;">Target Character:</span> ${targetCharId.toString()}</div>
+                                        <div><span style="color: #888;">Registered Owner:</span> ${registeredOwner.toString()}</div>
+                                        <div><span style="color: #888;">Is Owner:</span> <span style="color: ${isOwner ? '#00ff64' : '#ff6464'}">${isOwner ? 'YES' : 'NO'}</span></div>
+                                        <div><span style="color: #888;">Has Been Shot:</span> <span style="color: ${hasBeenShot ? '#00ff64' : '#ff6464'}">${hasBeenShot ? 'YES' : 'NO'}</span></div>
+                                        <div><span style="color: #888;">Found In Queue:</span> <span style="color: ${foundInQueue ? '#00ff64' : '#ff6464'}">${foundInQueue ? 'YES' : 'NO'}</span></div>
+                                    </div>
+                                </div>
+                            `;
+                            resultsHtml += logEntry;
+                            debugResults.innerHTML = resultsHtml;
+                            logActivity(`Found debug log at timestamp ${timestamp}`);
+                        }
+                    } catch (e) {
+                        // No record at this timestamp, continue
+                    }
+                }
+
+                if (logsFound === 0) {
+                    debugResults.innerHTML = `
+                        <div style="color: #ff6464; padding: 15px; background: rgba(255,0,0,0.1); border-radius: 4px;">
+                            ⚠️ No debug logs found in the last hour for turret ${turretId}.
+                            <br><br>
+                            This means the inProximity() function has NOT been called by the game engine.
+                            <br><br>
+                            Possible reasons:
+                            <ul style="margin-top: 10px; margin-left: 20px;">
+                                <li>Turret is not online/configured properly</li>
+                                <li>You haven't approached the turret yet</li>
+                                <li>Game engine is not calling the custom system</li>
+                            </ul>
+                        </div>
+                    `;
+                    logActivity(`No debug logs found for turret ${turretId}`);
+                    showAlert('info', 'No debug logs found. Make sure the turret is online and you approach it in-game.');
+                } else {
+                    logActivity(`✅ Found ${logsFound} debug log(s)`);
+                    showAlert('success', `Found ${logsFound} debug log(s) for this turret!`);
+                }
+
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Debug Logs';
+
+            } catch (error) {
+                logActivity(`ERROR checking debug logs: ${error.message}`);
+                showAlert('error', error.message);
+                console.error('Full error:', error);
+
+                const checkBtn = document.getElementById('checkDebugBtn');
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Debug Logs';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('connectBtn').addEventListener('click', connectWallet);
+        document.getElementById('registerBtn').addEventListener('click', registerOwner);
+        document.getElementById('checkDebugBtn').addEventListener('click', checkDebugLogs);
+
+        // Listen for account changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    logActivity('Wallet disconnected');
+                    userAddress = null;
+                    document.getElementById('walletAddress').textContent = 'Not connected';
+                    document.getElementById('connectBtn').textContent = 'Connect Wallet';
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('registerBtn').disabled = true;
+                } else {
+                    userAddress = accounts[0];
+                    document.getElementById('walletAddress').textContent = userAddress;
+                    logActivity(`Account changed to: ${userAddress}`);
+                }
+            });
+        }
+
+        logActivity(`DApp initialized (${VERSION})`);
+        logActivity(`World Address: ${WORLD_ADDRESS}`);
+        logActivity(`System ID: ${SYSTEM_ID}`);
+    </script>
+</body>
+</html>

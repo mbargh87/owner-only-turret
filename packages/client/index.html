@@ -481,7 +481,7 @@ pnpm configure
                 // Encode the function call: setTurretOwner(uint256,uint256)
                 const functionSignature = ethers.utils.id('setTurretOwner(uint256,uint256)').slice(0, 10);
                 addDebugLog('Function signature: ' + functionSignature);
-                
+
                 const encodedParams = ethers.utils.defaultAbiCoder.encode(
                     ['uint256', 'uint256'],
                     [turretId, characterId]
